@@ -1,0 +1,55 @@
+#include <Arduino.h>
+
+const int displayPin = 3;
+const int ledRed = 4;
+const int ledGreen = 5;
+const int ledBlue = 6;
+const int ledYellow = 7;
+const int button1 = 9;
+const int button2 = 8;
+
+int array[4];
+int nummers = 0;
+
+
+void setup() 
+{
+   Serial.begin(9600);
+   Serial.print("code starting");
+   pinMode(ledRed, OUTPUT);
+   pinMode(ledGreen, OUTPUT);
+   pinMode(ledBlue, OUTPUT);
+   pinMode(ledYellow, OUTPUT);
+   pinMode(button1, INPUT_PULLUP);
+   pinMode(button2, INPUT_PULLUP);
+}
+
+void loop() {
+  if (nummers < 4){
+    if (digitalRead(button1) == LOW){
+      array[nummers++] = 1;
+      Serial.println(digitalRead(button1)); 
+    }
+    if (digitalRead(button2) == LOW){
+      array[nummers++] = 2;
+      Serial.println(digitalRead(button2));
+    }
+  }
+  else { 
+    for (int i = 0; i < 4; i++){
+      if (array[i] == 1){
+        digitalWrite(ledRed, HIGH);
+        delay(300);
+        digitalWrite(ledRed, LOW);
+      }
+      else if (array[i] == 2)
+      {
+        digitalWrite(ledGreen, HIGH);
+        delay(300);
+        digitalWrite(ledGreen, LOW);
+      }
+      delay(200);
+    }
+    nummers = 0;
+  }
+}
