@@ -1,0 +1,163 @@
+#include <Arduino.h>
+#include "Display.h"
+#include "DHT11.h"
+
+
+const int displayPin = 3;
+const int ledRed = 4;
+const int ledGreen = 5;
+const int ledBlue = 6;
+const int ledYellow = 7;
+const int pinTemp = 15;
+const int NTC_R25 = 10000;
+const int NTC_MATERIAL_CONSTANT = 3950;
+float Humid = 0;
+float Temp = 0;
+float CTemp = 0;
+int TChoice = 0;
+const int button = 9;
+int prevButtonState =0;
+
+
+const float C_1 = -8.785;
+const float C_2 = 1.611;
+const float C_3 = 2.339;
+const float C_4 = -0.146;
+const float C_5 = -1.231E-2;
+const float C_6 = -1.642E-2;
+const float C_7 = 2.212E-3;
+const float C_8 = 7.255E-4;
+const float C_9 = -3.582E-6;
+
+const float F_1 = -42.379;
+const float F_2 = 2.04901523;
+const float F_3 = 10.14333127;
+const float F_4 = -0.22475541;
+const float F_5 = -6.83783E-3;
+const float F_6 = -5.481717E-2;
+const float F_7 = 1.22874E-3;
+const float F_8 = 8.5282E-4;
+const float F_9 = -1.99E-6;
+
+
+void setup() 
+{
+   Serial.begin(9600);
+   pinMode(displayPin, OUTPUT);
+   pinMode(ledRed, OUTPUT);
+   pinMode(ledGreen, OUTPUT);
+   pinMode(ledBlue, OUTPUT);
+   pinMode(ledYellow, OUTPUT);
+   pinMode(button, INPUT_PULLUP);
+   
+}
+
+float get_temperature()
+{
+  float temperature,resistance;
+  int value;
+  value = analogRead(pinTemp);
+  resistance = (float)value * NTC_R25/(1024 - value);
+  temperature = 1/(log(resistance/NTC_R25)/NTC_MATERIAL_CONSTANT+1/298.15)-273.15;
+  return temperature;
+}
+
+bool buttonPressed()
+{
+  bool isPressed = false;
+  int buttonState = digitalRead(button);
+  if(prevButtonState != buttonState)
+  {
+    if(buttonState == LOW)
+    {
+      isPressed = true;
+    }   
+  }
+  prevButtonState = buttonState;
+  return isPressed;
+}
+
+
+float getCHeatIndex() {
+  Humid = DHT11.getHumidity();
+  Temp = get_temperature();
+  if (isnan(Humid) || isnan(Temp)) {
+    Display.show("Error");
+  }
+  
+  float heat_cindex = C_1 + C_2*Temp + C_3*Humid + C_4*Temp*Humid + C_5*Temp*Temp + C_6*Humid*Humid + C_7*Temp*Temp*Humid + C_8*Temp*Humid*Humid + C_9*Temp*Temp*Humid*Humid;
+  return heat_cindex;
+}
+
+
+float getFHeatIndex() {
+  Humid = DHT11.getHumidity();
+  CTemp = get_temperature();
+  Temp = ((9.0/5.0 * CTemp) + 32);
+  if (isnan(Humid) || isnan(Temp)) {
+    Display.show("Error");
+  }
+  
+  float heat_findex = F_1 + F_2 * Temp + F_3 * Humid + F_4 * Temp * Humid + F_5 * Temp * Temp + F_6 * Humid * Humid + F_7 * Temp * Temp * Humid + F_8 * Temp * Humid * Humid + F_9 * Temp * Temp * Humid * Humid;
+  return heat_findex;
+}
+
+
+
+void loop() 
+{
+  if (buttonPressed())
+  {
+    TChoice = !TChoice;
+  }
+  if (TChoice == 0)
+  {
+    float HIndex = getCHeatIndex();
+    Display.show(HIndex);
+    Serial.println(HIndex);
+    digitalWrite(ledYellow, LOW);
+    digitalWrite(ledBlue, LOW);
+    digitalWrite(ledGreen, LOW);
+    digitalWrite(ledRed, LOW);
+
+    if (HIndex < 26.6) {
+      digitalWrite(ledYellow, HIGH);
+    } else if (HIndex >= 26.7 && HIndex <= 32.3) {
+      digitalWrite(ledBlue, HIGH);
+    } else if (HIndex >= 32.4 && HIndex <= 40.6) {
+      digitalWrite(ledGreen, HIGH);
+    } else if (HIndex >= 40.7 && HIndex <= 54.4) {
+      digitalWrite(ledRed, HIGH);
+    } else if (HIndex > 54.5) {
+      digitalWrite(ledYellow, HIGH);
+      digitalWrite(ledBlue, HIGH);
+      digitalWrite(ledGreen, HIGH);
+      digitalWrite(ledRed, HIGH);
+    }
+  }  
+  else if (TChoice == 1)
+  {
+    float HIndex = getFHeatIndex();
+    Display.show(HIndex);
+    Serial.println(HIndex);
+    digitalWrite(ledYellow, LOW);
+    digitalWrite(ledBlue, LOW);
+    digitalWrite(ledGreen, LOW);
+    digitalWrite(ledRed, LOW);
+
+    if (HIndex < 80.0) {
+      digitalWrite(ledYellow, HIGH);
+    } else if (HIndex >= 80.0 && HIndex <= 89.9) {
+      digitalWrite(ledBlue, HIGH);
+    } else if (HIndex >= 90.0 && HIndex <= 105.0) {
+      digitalWrite(ledGreen, HIGH);
+    } else if (HIndex >= 105.1 && HIndex <= 130.0) {
+      digitalWrite(ledRed, HIGH);
+    } else if (HIndex > 130.1) {
+      digitalWrite(ledYellow, HIGH);
+      digitalWrite(ledBlue, HIGH);
+      digitalWrite(ledGreen, HIGH);
+      digitalWrite(ledRed, HIGH);
+    }
+}  
+}
