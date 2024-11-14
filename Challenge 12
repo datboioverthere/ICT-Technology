@@ -34,7 +34,7 @@ void loop() {
     if (digitalRead(button2) == LOW){
       array[nummers++] = 2;
       delay(200);
-      (digitalRead(button2) == LOW);
+      while (digitalRead(button2) == LOW);
     }
   }
   else { 
